@@ -228,7 +228,8 @@ public class SettingUI {
             config.setId(MTAUtils.getI(""));
         }
         process(config);
-        File file = new File(config.getFilePath() + File.separator + PersistentConfig.PATH + File.separator);
+        CodeTypeEnum codeTypeEnum = CodeTypeEnum.getCodeTypeEnum(config.getCodeType());
+        File file =  new File(config.getFilePath() + File.separator + codeTypeEnum.getLangSlug() + File.separator + PersistentConfig.MY_PATH + File.separator);
         if (!file.exists()) {
             file.mkdirs();
         }

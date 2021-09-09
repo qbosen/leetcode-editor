@@ -70,4 +70,8 @@ public enum CodeTypeEnum {
     public String getComment() {
         return comment;
     }
+
+    public String getLangSlug() {
+        return langSlug;
+    }
 }

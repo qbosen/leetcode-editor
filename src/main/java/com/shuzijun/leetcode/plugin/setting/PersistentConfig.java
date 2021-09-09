@@ -4,6 +4,7 @@ import com.intellij.ide.passwordSafe.PasswordSafe;
 import com.intellij.ide.passwordSafe.PasswordSafeException;
 import com.intellij.openapi.components.*;
 import com.intellij.util.xmlb.XmlSerializerUtil;
+import com.shuzijun.leetcode.plugin.model.CodeTypeEnum;
 import com.shuzijun.leetcode.plugin.model.Config;
 import com.shuzijun.leetcode.plugin.utils.MessageUtils;
 import com.shuzijun.leetcode.plugin.utils.PropertiesUtils;
@@ -21,6 +22,7 @@ import java.util.Map;
 public class PersistentConfig implements PersistentStateComponent<PersistentConfig> {
 
     public static String PATH = "leetcode" + File.separator + "editor";
+    public static String MY_PATH = "top" + File.separator + "abosen" + File.separator + "leetcode";
     public static String OLDPATH = "leetcode-plugin";
     private static String INITNAME = "initConfig";
 
@@ -63,7 +65,9 @@ public class PersistentConfig implements PersistentStateComponent<PersistentConf
     }
 
     public String getTempFilePath() {
-        return getConfig().getFilePath() + File.separator + PATH + File.separator + initConfig.get(INITNAME).getAlias() + File.separator;
+        Config config = getConfig();
+        CodeTypeEnum codeTypeEnum = CodeTypeEnum.getCodeTypeEnum(config.getCodeType());
+        return config.getFilePath() + File.separator + codeTypeEnum.getLangSlug() + File.separator + MY_PATH + File.separator;
     }
 
     public void savePassword(String password) {

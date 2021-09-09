@@ -449,6 +449,10 @@
                 text="Help" description="Help" icon="LeetCodeEditorIcons.HELP">
         </action>
 
+        <action id="leetcode.SelectLangAction" class="com.shuzijun.leetcode.plugin.actions.toolbar.SelectLangAction"
+                text="Select Lang" description="Select Lang" icon="LeetCodeEditorIcons.LEETCODE_TOOL_WINDOW">
+        </action>
+
         <action id="leetcode.OpenAction" class="com.shuzijun.leetcode.plugin.actions.tree.OpenAction"
                 text="open question" description="open question" icon="LeetCodeEditorIcons.QUESTION">
         </action>
@@ -500,6 +504,8 @@
             <reference id="leetcode.ConfigAction"/>
             <reference id="leetcode.ClearAllAction"/>
             <reference id="leetcode.HelpAction"/>
+            <separator/>
+            <reference id="leetcode.SelectLangAction"/>
         </group>
 
         <group id="leetcode.NavigatorActionsMenu">

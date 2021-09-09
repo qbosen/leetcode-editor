@@ -1,11 +1,13 @@
 package com.shuzijun.leetcode.plugin.setting;
 
+import com.intellij.credentialStore.CredentialAttributes;
+import com.intellij.credentialStore.Credentials;
 import com.intellij.ide.passwordSafe.PasswordSafe;
-import com.intellij.ide.passwordSafe.PasswordSafeException;
 import com.intellij.openapi.components.*;
 import com.intellij.util.xmlb.XmlSerializerUtil;
 import com.shuzijun.leetcode.plugin.model.CodeTypeEnum;
 import com.shuzijun.leetcode.plugin.model.Config;
+import com.shuzijun.leetcode.plugin.model.PluginConstant;
 import com.shuzijun.leetcode.plugin.utils.MessageUtils;
 import com.shuzijun.leetcode.plugin.utils.PropertiesUtils;
 import org.jetbrains.annotations.NotNull;
@@ -18,7 +20,7 @@ import java.util.Map;
 /**
  * @author shuzijun
  */
-@State(name = "PersistentConfig", storages = {@Storage(value = "leetcode-config.xml", roamingType = RoamingType.DISABLED)})
+@State(name = "PersistentConfig" + PluginConstant.ACTION_SUFFIX, storages = {@Storage(value = PluginConstant.ACTION_PREFIX + "-config.xml", roamingType = RoamingType.DISABLED)})
 public class PersistentConfig implements PersistentStateComponent<PersistentConfig> {
 
     public static String PATH = "leetcode" + File.separator + "editor";
@@ -70,24 +72,16 @@ public class PersistentConfig implements PersistentStateComponent<PersistentConf
         return config.getFilePath() + File.separator + codeTypeEnum.getLangSlug() + File.separator + MY_PATH + File.separator;
     }
 
-    public void savePassword(String password) {
-        try {
-            PasswordSafe.getInstance().storePassword
-                    (null, this.getClass(), "leetcode-editor", password != null ? password : "");
-        } catch (PasswordSafeException exception) {
-            MessageUtils.showAllWarnMsg("warning", "Failed to save password");
+    public void savePassword(String password, String username) {
+        if(username == null || password == null){
+            return;
         }
+        PasswordSafe.getInstance().set(new CredentialAttributes(PluginConstant.PLUGIN_ID, username, this.getClass()), new Credentials(username, password==null?"":password));
     }
 
-    public String getPassword() {
-        if (getConfig().getVersion() != null) {
-            try {
-                return PasswordSafe.getInstance().getPassword(null, this.getClass(), "leetcode-editor");
-            } catch (PasswordSafeException exception) {
-                MessageUtils.showAllWarnMsg("warning", "Password acquisition failed");
-                return null;
-            }
-
+    public String getPassword(String username) {
+        if (getConfig().getVersion() != null && username != null) {
+            return PasswordSafe.getInstance().getPassword(new CredentialAttributes(PluginConstant.PLUGIN_ID, username, this.getClass()));
         }
         return null;
 

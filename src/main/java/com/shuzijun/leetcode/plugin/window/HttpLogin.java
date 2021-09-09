@@ -9,6 +9,7 @@ import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.shuzijun.leetcode.plugin.manager.ViewManager;
 import com.shuzijun.leetcode.plugin.model.Config;
+import com.shuzijun.leetcode.plugin.model.PluginConstant;
 import com.shuzijun.leetcode.plugin.setting.PersistentConfig;
 import com.shuzijun.leetcode.plugin.utils.*;
 import org.apache.commons.lang.StringUtils;
@@ -32,15 +33,15 @@ public class HttpLogin {
             return Boolean.FALSE;
         }
 
-        if (StringUtils.isBlank(PersistentConfig.getInstance().getPassword())) {
+        if (StringUtils.isBlank(PersistentConfig.getInstance().getPassword(config.getLoginName()))) {
             return Boolean.FALSE;
         }
 
         try {
             HttpEntity ent = MultipartEntityBuilder.create()
-                    .addTextBody("csrfmiddlewaretoken", HttpRequestUtils.getToken())
+                    .addTextBody("csrfmiddlewaretoken", HttpRequestUtils.getToken() == null ? "": HttpRequestUtils.getToken())
                     .addTextBody("login", config.getLoginName())
-                    .addTextBody("password", PersistentConfig.getInstance().getPassword())
+                    .addTextBody("password", PersistentConfig.getInstance().getPassword(config.getLoginName()))
                     .addTextBody("next", "/problems")
                     .build();
             HttpRequest httpRequest = HttpRequest.post(URLUtils.getLeetcodeLogin(), ent.getContentType().getValue());
@@ -81,6 +82,7 @@ public class HttpLogin {
                     return Boolean.FALSE;
                 }
             } else if (response.getStatusCode() == 400) {
+                LogUtils.LOG.error("login 400:" + body);
                 JSONObject jsonObject = JSONObject.parseObject(body);
                 MessageUtils.getInstance(project).showInfoMsg("info", StringUtils.join(jsonObject.getJSONObject("form").getJSONArray("errors"), ","));
                 return Boolean.FALSE;
@@ -130,7 +132,7 @@ public class HttpLogin {
     }
 
     public static void loginSuccess(JTree tree, Project project, List<HttpCookie> cookieList) {
-        ProgressManager.getInstance().run(new Task.Backgroundable(project, "leetcode.loginSuccess", false) {
+        ProgressManager.getInstance().run(new Task.Backgroundable(project, PluginConstant.ACTION_PREFIX+".loginSuccess", false) {
             @Override
             public void run(@NotNull ProgressIndicator progressIndicator) {
                 Config config = PersistentConfig.getInstance().getInitConfig();

@@ -3,10 +3,8 @@ package com.shuzijun.leetcode.plugin.model;
 import com.intellij.util.xmlb.annotations.Transient;
 
 import java.awt.*;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
 
 /**
  * @author shuzijun
@@ -89,6 +87,31 @@ public class Config {
      * 使用jcef渲染
      */
     private Boolean jcef = false;
+
+    /**
+     * question Split Editor
+     */
+    private Boolean questionEditor = true;
+
+    /**
+     * Content  Multiline Comment
+     */
+    private Boolean multilineComment = false;
+
+    /**
+     * html Content
+     */
+    private Boolean htmlContent = false;
+
+    /**
+     * showTopics
+     */
+    private Boolean showTopics = true;
+
+    /**
+     * showToolIcon
+     */
+    private Boolean showToolIcon = true;
 
     private List<String> favoriteList;
 
@@ -308,27 +331,77 @@ public class Config {
         this.jcef = jcef;
     }
 
+    public Boolean getQuestionEditor() {
+        return questionEditor;
+    }
+
+    public void setQuestionEditor(Boolean questionEditor) {
+        this.questionEditor = questionEditor;
+    }
+
+    public Boolean getMultilineComment() {
+        return multilineComment;
+    }
+
+    public void setMultilineComment(Boolean multilineComment) {
+        this.multilineComment = multilineComment;
+    }
+
+    public Boolean getHtmlContent() {
+        return htmlContent;
+    }
+
+    public void setHtmlContent(Boolean htmlContent) {
+        this.htmlContent = htmlContent;
+    }
+
+    public Boolean getShowTopics() {
+        return showTopics;
+    }
+
+    public void setShowTopics(Boolean showTopics) {
+        this.showTopics = showTopics;
+    }
+
+    public Boolean getShowToolIcon() {
+        return showToolIcon;
+    }
+
+    public void setShowToolIcon(Boolean showToolIcon) {
+        this.showToolIcon = showToolIcon;
+    }
+
     public boolean isModified(Config config){
         if(config ==null){
             return false;
         }
-        if (version != null ? !version.equals(config.version) : config.version != null) return false;
-        if (loginName != null ? !loginName.equals(config.loginName) : config.loginName != null) return false;
-        if (filePath != null ? !filePath.equals(config.filePath) : config.filePath != null) return false;
-        if (codeType != null ? !codeType.equals(config.codeType) : config.codeType != null) return false;
-        if (url != null ? !url.equals(config.url) : config.url != null) return false;
-        if (update != null ? !update.equals(config.update) : config.update != null) return false;
-        if (proxy != null ? !proxy.equals(config.proxy) : config.proxy != null) return false;
-        if (customCode != null ? !customCode.equals(config.customCode) : config.customCode != null) return false;
-        if (englishContent != null ? !englishContent.equals(config.englishContent) : config.englishContent != null)
+        if (!Objects.equals(version, config.version)) return false;
+        if (!Objects.equals(loginName, config.loginName)) return false;
+        if (!Objects.equals(filePath, config.filePath)) return false;
+        if (!Objects.equals(codeType, config.codeType)) return false;
+        if (!Objects.equals(url, config.url)) return false;
+        if (!Objects.equals(update, config.update)) return false;
+        if (!Objects.equals(proxy, config.proxy)) return false;
+        if (!Objects.equals(customCode, config.customCode)) return false;
+        if (!Objects.equals(englishContent, config.englishContent))
             return false;
-        if (customFileName != null ? !customFileName.equals(config.customFileName) : config.customFileName != null)
+        if (!Objects.equals(customFileName, config.customFileName))
             return false;
-        if (customTemplate != null ? !customTemplate.equals(config.customTemplate) : config.customTemplate != null)
+        if (!Objects.equals(customTemplate, config.customTemplate))
             return false;
-        if (jcef != null ? !jcef.equals(config.jcef) : config.jcef != null)
+        if (!Objects.equals(jcef, config.jcef))
             return false;
-        return levelColour != null ? levelColour.equals(config.levelColour) : config.levelColour == null;
+        if (!Objects.equals(questionEditor, config.questionEditor))
+            return false;
+        if (!Objects.equals(multilineComment, config.multilineComment))
+            return false;
+        if (!Objects.equals(htmlContent, config.htmlContent))
+            return false;
+        if (!Objects.equals(showTopics, config.showTopics))
+            return false;
+        if (!Objects.equals(showToolIcon, config.showToolIcon))
+            return false;
+        return Objects.equals(levelColour, config.levelColour);
     }
 
 

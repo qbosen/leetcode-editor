@@ -1,18 +1,14 @@
 package com.shuzijun.leetcode.plugin.utils;
 
-import com.intellij.openapi.application.Application;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.application.TransactionGuard;
-import com.intellij.openapi.application.WriteAction;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileEditor.OpenFileDescriptor;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.util.ThrowableComputable;
+import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.vfs.LocalFileSystem;
-import com.intellij.openapi.vfs.VfsUtil;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.util.ExceptionUtil;
+import com.intellij.openapi.vfs.newvfs.RefreshQueue;
 import com.shuzijun.leetcode.plugin.model.CodeTypeEnum;
 import com.shuzijun.leetcode.plugin.model.Constant;
 import com.shuzijun.leetcode.plugin.model.LeetcodeEditor;
@@ -24,7 +20,7 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
 
 /**
  * @author shuzijun
@@ -38,6 +34,9 @@ public class FileUtils {
 
     public static void saveFile(File file, String body) {
         try {
+            if (body == null) {
+                return;
+            }
             if (!file.getParentFile().exists()) {
                 file.getParentFile().mkdirs();
             }
@@ -77,50 +76,10 @@ public class FileUtils {
     public static String getClearCommentFileBody(File file, CodeTypeEnum codeTypeEnum) {
 
         VirtualFile vf = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(file);
-        if (FileDocumentManager.getInstance().isFileModified(vf)) {
-            try {
-                ThrowableComputable<Boolean, Throwable> action = new ThrowableComputable<Boolean, Throwable>() {
-                    @Override
-                    public Boolean compute() throws Throwable {
-                        FileDocumentManager.getInstance().saveDocument(FileDocumentManager.getInstance().getDocument(vf));
-                        return true;
-                    }
-                };
-
-
-                Application application = ApplicationManager.getApplication();
-                if (application.isDispatchThread()) {
-                    ApplicationManager.getApplication().runWriteAction(action);
-                } else {
-                    if (application.isReadAccessAllowed()) {
-                        LogUtils.LOG.error("Must not start write action from within read action in the other thread - deadlock is coming");
-                    }
-
-                    AtomicReference<Boolean> result = new AtomicReference();
-                    AtomicReference<Throwable> exception = new AtomicReference();
-                    TransactionGuard.getInstance().submitTransactionAndWait(() -> {
-                        try {
-                            result.set(WriteAction.compute(action));
-                        } catch (Throwable var4) {
-                            exception.set(var4);
-                        }
-
-                    });
-                    Throwable t = (Throwable) exception.get();
-                    if (t != null) {
-                        t.addSuppressed(new RuntimeException());
-                        ExceptionUtil.rethrowUnchecked(t);
-                        throw t;
-                    }
-                }
-            } catch (Throwable ignore) {
-                LogUtils.LOG.error("自动保存文件错误", ignore);
-            }
-
-        }
+        saveEditDocument(vf);
         StringBuffer code = new StringBuffer();
         try {
-            String body = VfsUtil.loadText(vf);
+            String body = ApplicationManager.getApplication().runReadAction((Computable<String>) () -> FileDocumentManager.getInstance().getDocument(vf).getText());
             if (StringUtils.isNotBlank(body)) {
 
                 List<String> codeList = new LinkedList<>();
@@ -161,8 +120,8 @@ public class FileUtils {
                     }
                 }
             }
-        } catch (IOException id) {
-
+        } catch (Exception e) {
+            LogUtils.LOG.error("getClearCommentFileBody error",e);
         }
         return code.toString();
     }
@@ -260,17 +219,46 @@ public class FileUtils {
             VirtualFile vf = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(file);
             OpenFileDescriptor descriptor = new OpenFileDescriptor(project, vf);
             FileEditorManager.getInstance(project).openTextEditor(descriptor, false);
+            RefreshQueue.getInstance().refresh(false, false, null, vf);
         });
     }
 
-    public static void openFileEditorAndSaveState(File file, Project project, Question question) {
+
+    public static void openFileEditorAndSaveState(File file, Project project, Question question, BiConsumer<LeetcodeEditor,String> consumer,boolean isOpen) {
         ApplicationManager.getApplication().invokeAndWait(() -> {
             VirtualFile vf = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(file);
-            OpenFileDescriptor descriptor = new OpenFileDescriptor(project, vf);
-            FileEditorManager.getInstance(project).openTextEditor(descriptor, false);
-            LeetcodeEditor leetcodeEditor = ProjectConfig.getInstance(project).getDefEditor(vf.getPath());
-            leetcodeEditor.setQuestionId(question.getQuestionId());
+            LeetcodeEditor leetcodeEditor = ProjectConfig.getInstance(project).getDefEditor(question.getFrontendQuestionId());
+            leetcodeEditor.setFrontendQuestionId(question.getFrontendQuestionId());
+            consumer.accept(leetcodeEditor,vf.getPath());
+            ProjectConfig.getInstance(project).addLeetcodeEditor(leetcodeEditor);
+            if(isOpen) {
+                OpenFileDescriptor descriptor = new OpenFileDescriptor(project, vf);
+                FileEditorManager.getInstance(project).openTextEditor(descriptor, false);
+            }
         });
+    }
+
+    public static void saveEditDocument(VirtualFile file){
+        if (FileDocumentManager.getInstance().isFileModified(file)) {
+            try {
+                ApplicationManager.getApplication().invokeLaterOnWriteThread((() -> {
+                    ApplicationManager.getApplication().runWriteAction(() -> {
+                        FileDocumentManager.getInstance().saveDocument(FileDocumentManager.getInstance().getDocument(file));
+                    });
+                }));
+            } catch (Throwable ignore) {
+                LogUtils.LOG.error("自动保存文件错误", ignore);
+            }
+
+        }
+    }
+
+    public static String separator() {
+        if (File.separator.equals("\\")) {
+            return "/";
+        } else {
+            return "";
+        }
     }
 
 }

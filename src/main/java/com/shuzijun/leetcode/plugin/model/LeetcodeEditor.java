@@ -13,9 +13,15 @@ public class LeetcodeEditor {
     private String path;
 
     /**
-     * questionId
+     * frontendQuestionId
      */
-    private String questionId;
+    private String frontendQuestionId;
+
+
+    /**
+     * content file path
+     */
+    private String contentPath;
 
     public Integer getVersion() {
         return version;
@@ -33,11 +39,20 @@ public class LeetcodeEditor {
         this.path = path;
     }
 
-    public String getQuestionId() {
-        return questionId;
+    public String getFrontendQuestionId() {
+        return frontendQuestionId;
     }
 
-    public void setQuestionId(String questionId) {
-        this.questionId = questionId;
+    public void setFrontendQuestionId(String frontendQuestionId) {
+        this.frontendQuestionId = frontendQuestionId;
     }
+
+    public String getContentPath() {
+        return contentPath;
+    }
+
+    public void setContentPath(String contentPath) {
+        this.contentPath = contentPath;
+    }
+
 }

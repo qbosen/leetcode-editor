@@ -1,6 +1,11 @@
 name: Release
 
 on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version'
+        required: true
   push:
     tags:
       - 'v*.*'
@@ -14,12 +19,16 @@ jobs:
       uses: actions/checkout@v2
     
     - name: Set LD_VERSION
-      run: echo ::set-env name=LD_VERSION::${GITHUB_REF#refs/*/v}
+      if: ${{ github.event_name == 'push'}}
+      run: echo "LD_VERSION=${GITHUB_REF#refs/*/v}" >> $GITHUB_ENV
+    - name: Set LD_VERSION
+      if: ${{ github.event_name == 'workflow_dispatch'}}
+      run: echo "LD_VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
     
-    - name: Set up JDK 1.8
+    - name: Set up JDK 11
       uses: actions/setup-java@v1
       with:
-        java-version: 1.8
+        java-version: 11
     
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
@@ -31,12 +40,12 @@ jobs:
     
     - name: Verify plugin
       id: verify
-      uses: ChrisCarini/intellij-platform-plugin-verifier-action@latest
+      uses: ChrisCarini/intellij-platform-plugin-verifier-action@v1.0.5
       with:
+        failure-levels: |
+          INVALID_PLUGIN
         ide-versions: |
-          ideaIC:2019.3
-          ideaIC:2020.1
-          ideaIC:2020.2
+          ideaIC:2021.1
           ideaIC:LATEST-EAP-SNAPSHOT
     
     - name: Print verify contents
@@ -50,8 +59,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ github.ref }}
-        release_name: ${{ github.ref }}
+        tag_name: v${{ env.LD_VERSION }}
+        release_name: v${{ env.LD_VERSION }}
         draft: true
         prerelease: false
     

@@ -8,21 +8,20 @@ import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.ui.components.JBScrollPane;
 import com.shuzijun.leetcode.plugin.model.Constant;
 import com.shuzijun.leetcode.plugin.model.Question;
+import com.shuzijun.leetcode.plugin.model.Sort;
 import com.shuzijun.leetcode.plugin.model.Tag;
 import com.shuzijun.leetcode.plugin.utils.MessageUtils;
 import com.shuzijun.leetcode.plugin.utils.PropertiesUtils;
-import com.shuzijun.leetcode.plugin.utils.URLUtils;
 import com.shuzijun.leetcode.plugin.window.WindowFactory;
+import org.apache.commons.lang.StringUtils;
 
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
 import java.awt.*;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
-import java.util.TreeSet;
+import java.util.*;
 
 /**
  * @author shuzijun
@@ -33,14 +32,25 @@ public class ViewManager {
 
     private static Map<String, List<Tag>> filter = Maps.newLinkedHashMap();
 
+    private static Map<String, Sort> sortMap = Maps.newLinkedHashMap();
+
+    static {
+        sortMap.put(Constant.SORT_TYPE_ID, new Sort(Constant.SORT_TYPE_ID, 1));
+        sortMap.put(Constant.SORT_TYPE_TITLE, new Sort(Constant.SORT_TYPE_TITLE));
+        sortMap.put(Constant.SORT_TYPE_SOLUTION, new Sort(Constant.SORT_TYPE_SOLUTION));
+        sortMap.put(Constant.SORT_TYPE_ACCEPTANCE, new Sort(Constant.SORT_TYPE_ACCEPTANCE));
+        sortMap.put(Constant.SORT_TYPE_DIFFICULTY, new Sort(Constant.SORT_TYPE_DIFFICULTY));
+        sortMap.put(Constant.SORT_TYPE_FREQUENCY, new Sort(Constant.SORT_TYPE_FREQUENCY));
+    }
+
     private static boolean intersection = Boolean.FALSE;
 
     public static void loadServiceData(JTree tree, Project project) {
-        loadServiceData(tree, project, URLUtils.getLeetcodeAll());
+        loadServiceData(tree, project, "");
     }
 
-    public static void loadServiceData(JTree tree, Project project, String url) {
-        List<Question> questionList = QuestionManager.getQuestionService(project, url);
+    public static void loadServiceData(JTree tree, Project project, String categorySlug) {
+        List<Question> questionList = QuestionManager.getQuestionService(project, categorySlug);
         if (questionList == null || questionList.isEmpty()) {
             MessageUtils.getInstance(project).showWarnMsg("warning", PropertiesUtils.getInfo("response.cache"));
             questionList = QuestionManager.getQuestionCache();
@@ -53,27 +63,29 @@ public class ViewManager {
         question = Maps.uniqueIndex(questionList.iterator(), new Function<Question, String>() {
             @Override
             public String apply(Question question) {
-                return question.getQuestionId();
+                return question.getFrontendQuestionId();
             }
         });
 
         filter.put(Constant.FIND_TYPE_DIFFICULTY, QuestionManager.getDifficulty());
-        filter.put(Constant.FIND_TYPE_STATUS, QuestionManager.getStatus());
-        filter.put(Constant.FIND_TYPE_LISTS, QuestionManager.getLists());
-        filter.put(Constant.FIND_TYPE_TAGS, QuestionManager.getTags());
-        filter.put(Constant.FIND_TYPE_CATEGORY, QuestionManager.getCategory(url));
+        //filter.put(Constant.FIND_TYPE_STATUS, QuestionManager.getStatus());
+        // filter.put(Constant.FIND_TYPE_LISTS, QuestionManager.getLists());
+       // filter.put(Constant.FIND_TYPE_TAGS, QuestionManager.getTags());  Temporarily disabled
+        filter.put(Constant.FIND_TYPE_CATEGORY, QuestionManager.getCategory(categorySlug));
 
 
         DefaultTreeModel treeMode = (DefaultTreeModel) tree.getModel();
         DefaultMutableTreeNode root = (DefaultMutableTreeNode) treeMode.getRoot();
         root.removeAllChildren();
-        DefaultMutableTreeNode node = new DefaultMutableTreeNode(new Question(String.format("Problems(%d)", questionList.size())));
+        Question problems = new Question(String.format("Problems(%d)", questionList.size()));
+        problems.setNodeType(Constant.NODETYPE_PROBLEMS);
+        DefaultMutableTreeNode node = new DefaultMutableTreeNode(problems);
         root.add(node);
         for (Question q : questionList) {
             node.add(new DefaultMutableTreeNode(q));
         }
         for (String key : filter.keySet()) {
-            if(Constant.FIND_TYPE_CATEGORY.equals(key)){
+            if (Constant.FIND_TYPE_CATEGORY.equals(key)) {
                 continue;
             }
             DefaultMutableTreeNode filterNode = new DefaultMutableTreeNode(new Question(key));
@@ -129,12 +141,20 @@ public class ViewManager {
             TreeSet<String> tagQuestionList = null;
             for (Tag tag : tagList) {
                 if (tag.isSelect()) {
-                    TreeSet<String> temp = tag.getQuestions();
+                    TreeSet<String> temp = tag.getFrontendQuestionId();
                     if (tagQuestionList == null) {
                         tagQuestionList = new TreeSet(new Comparator<String>() {
                             @Override
                             public int compare(String arg0, String arg1) {
-                                return Integer.valueOf(arg0).compareTo(Integer.valueOf(arg1));
+                                if (StringUtils.isNumeric(arg0) && StringUtils.isNumeric(arg1)) {
+                                    return Integer.valueOf(arg0).compareTo(Integer.valueOf(arg1));
+                                } else if (StringUtils.isNumeric(arg0)) {
+                                    return  -1;
+                                } else if (StringUtils.isNumeric(arg1)) {
+                                    return 1;
+                                } else {
+                                    return arg0.compareTo(arg1);
+                                }
                             }
                         });
                         tagQuestionList.addAll(temp);
@@ -170,21 +190,30 @@ public class ViewManager {
         }
         DefaultMutableTreeNode node = (DefaultMutableTreeNode) root.getChildAt(0);
         node.removeAllChildren();
-
-        if (selectQuestionList == null) {
-            for (Question q : question.values()) {
-                node.add(new DefaultMutableTreeNode(q));
+        Sort sort = null;
+        for (Sort value : sortMap.values()) {
+            if(Constant.SORT_NONE != value.getType()){
+                sort = value;
+                break;
             }
-            ((Question) node.getUserObject()).setTitle(String.format("Problems(%d)", node.getChildCount()));
+        }
+        List<Question> all = new ArrayList<>();
+        if (selectQuestionList == null) {
+             all = new ArrayList<>(question.values());
+
         } else {
             for (String key : selectQuestionList) {
                 Question q = question.get(key);
                 if (q != null) {
-                    node.add(new DefaultMutableTreeNode(q));
+                    all.add(q);
                 }
             }
-            ((Question) node.getUserObject()).setTitle(String.format("Problems(%d)", node.getChildCount()));
         }
+        QuestionManager.sortQuestionList(all,sort);
+        for (Question q : all) {
+            node.add(new DefaultMutableTreeNode(q));
+        }
+        ((Question) node.getUserObject()).setTitle(String.format("Problems(%d)", node.getChildCount()));
         treeMode.reload();
         tree.expandPath(new TreePath(node.getPath()));
 
@@ -249,15 +278,21 @@ public class ViewManager {
         }
         return question.get(id);
     }
+    public static Question getDumbQuestionById(String id, Project project) {
+        if (question.isEmpty()) {
+            return null;
+        }
+        return question.get(id);
+    }
 
     private static void addChild(DefaultMutableTreeNode rootNode, List<Tag> Lists, Map<String, Question> questionMap) {
         if (!Lists.isEmpty()) {
             for (Tag tag : Lists) {
-                long qCnt = tag.getQuestions().stream().filter(q -> questionMap.get(q) != null).count();
+                long qCnt = tag.getFrontendQuestionId().stream().filter(q -> questionMap.get(q) != null).count();
                 DefaultMutableTreeNode tagNode = new DefaultMutableTreeNode(new Question(String.format("%s(%d)",
                         tag.getName(), qCnt)));
                 rootNode.add(tagNode);
-                for (String key : tag.getQuestions()) {
+                for (String key : tag.getFrontendQuestionId()) {
                     if (questionMap.get(key) != null) {
                         tagNode.add(new DefaultMutableTreeNode(questionMap.get(key)));
                     }
@@ -283,7 +318,7 @@ public class ViewManager {
         for (int i = 0, j = node.getChildCount(); i < j; i++) {
             DefaultMutableTreeNode childNode = (DefaultMutableTreeNode) node.getChildAt(i);
             Question nodeData = (Question) childNode.getUserObject();
-            if (nodeData.getQuestionId().equals(question.getQuestionId())) {
+            if (nodeData.getFrontendQuestionId().equals(question.getFrontendQuestionId())) {
                 TreePath toShowPath = new TreePath(childNode.getPath());
                 tree.setSelectionPath(toShowPath);
                 Rectangle bounds = tree.getPathBounds(toShowPath);
@@ -296,4 +331,19 @@ public class ViewManager {
         }
     }
 
+    public static Sort getSort(String key) {
+        return sortMap.get(key);
+    }
+
+    public static void operationType(String key) {
+        int type = sortMap.get(key).operationType();
+        sortMap.forEach((s, sort) -> {
+            if (!s.equals(key)) {
+                sort.resetType();
+            }
+            if(Constant.SORT_NONE == type && s.equals(Constant.SORT_TYPE_ID)){
+                sort.operationType();
+            }
+        });
+    }
 }

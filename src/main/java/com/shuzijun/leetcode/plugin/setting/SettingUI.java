@@ -38,6 +38,7 @@ import java.io.File;
  */
 public class SettingUI {
     private JPanel mainPanel;
+    private JCheckBox questionEditorCheckBox;
     private JComboBox webComboBox;
     private JComboBox codeComboBox;
     private JBTextField userNameField;
@@ -56,6 +57,10 @@ public class SettingUI {
     private JPanel codeTemplate;
     private JPanel templateConstant;
     private JCheckBox jcefCheckBox;
+    private JCheckBox multilineCheckBox;
+    private JCheckBox htmlContentCheckBox;
+    private JCheckBox showTopicsCheckBox;
+    private JCheckBox showToolIconCheckBox;
 
 
     private Editor fileNameEditor = null;
@@ -123,7 +128,7 @@ public class SettingUI {
         //允许单逻辑行折叠
         settings.setAllowSingleLogicalLineFolding(false);
         //滚动
-        settings.setAnimatedScrolling(false);
+        settings.setAnimatedScrolling(true);
         //底部附加
         settings.setAdditionalPageAtBottom(false);
         //代码自动折叠
@@ -160,7 +165,7 @@ public class SettingUI {
         Config config = PersistentConfig.getInstance().getInitConfig();
         if (config != null) {
             userNameField.setText(config.getLoginName());
-            passwordField.setText(PersistentConfig.getInstance().getPassword());
+            passwordField.setText(PersistentConfig.getInstance().getPassword(config.getLoginName()));
             if (StringUtils.isNotBlank(config.getFilePath())) {
                 fileFolderBtn.setText(config.getFilePath());
             }
@@ -184,6 +189,11 @@ public class SettingUI {
             hardLabel.setForeground(colors[2]);
 
             jcefCheckBox.setSelected(config.getJcef());
+            questionEditorCheckBox.setSelected(config.getQuestionEditor());
+            multilineCheckBox.setSelected(config.getMultilineComment());
+            htmlContentCheckBox.setSelected(config.getHtmlContent());
+            showTopicsCheckBox.setSelected(config.getShowTopics());
+            showToolIconCheckBox.setSelected(config.getShowToolIcon());
         } else {
             Color[] colors = new Config().getFormatLevelColour();
             easyLabel.setForeground(colors[0]);
@@ -210,7 +220,7 @@ public class SettingUI {
             Config currentState = new Config();
             process(currentState);
             if (currentState.isModified(config)) {
-                if (passwordField.getText() != null && passwordField.getText().equals(PersistentConfig.getInstance().getPassword())) {
+                if (passwordField.getText() != null && passwordField.getText().equals(PersistentConfig.getInstance().getPassword(config.getLoginName()))) {
                     return false;
                 } else {
                     return true;
@@ -234,7 +244,7 @@ public class SettingUI {
             file.mkdirs();
         }
         PersistentConfig.getInstance().setInitConfig(config);
-        PersistentConfig.getInstance().savePassword(passwordField.getText());
+        PersistentConfig.getInstance().savePassword(passwordField.getText(),config.getLoginName());
         CustomTreeCellRenderer.loaColor();
         TimerBarWidget.loaColor();
     }
@@ -252,6 +262,11 @@ public class SettingUI {
         config.setFormatLevelColour(easyLabel.getForeground(), mediumLabel.getForeground(), hardLabel.getForeground());
         config.setEnglishContent(englishContentBox.isSelected());
         config.setJcef(jcefCheckBox.isSelected());
+        config.setQuestionEditor(questionEditorCheckBox.isSelected());
+        config.setMultilineComment(multilineCheckBox.isSelected());
+        config.setHtmlContent(htmlContentCheckBox.isSelected());
+        config.setShowTopics(showTopicsCheckBox.isSelected());
+        config.setShowToolIcon(showToolIconCheckBox.isSelected());
     }
 
 

@@ -4,6 +4,8 @@ import com.intellij.openapi.components.*;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.xmlb.annotations.MapAnnotation;
 import com.shuzijun.leetcode.plugin.model.LeetcodeEditor;
+import com.shuzijun.leetcode.plugin.model.PluginConstant;
+import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -13,16 +15,14 @@ import java.util.Map;
 /**
  * @author shuzijun
  */
-@State(name = "LeetcodeEditor", storages = {@Storage(value = "leetcode/editor.xml")})
-public class ProjectConfig implements ProjectComponent, PersistentStateComponent<ProjectConfig.InnerState> {
+@State(name = "LeetcodeEditor" + PluginConstant.ACTION_SUFFIX, storages = {@Storage(value = PluginConstant.ACTION_PREFIX+"/editor.xml")})
+public class ProjectConfig implements  PersistentStateComponent<ProjectConfig.InnerState> {
 
-    public ProjectConfig(Project project) {
-
-    }
+    public Map<String, LeetcodeEditor> idProjectConfig = new HashMap<>();
 
     @Nullable
     public static ProjectConfig getInstance(Project project) {
-        return ServiceManager.getService(project, ProjectConfig.class);
+        return project.getService(ProjectConfig.class);
     }
 
     private InnerState innerState = new InnerState();
@@ -36,17 +36,27 @@ public class ProjectConfig implements ProjectComponent, PersistentStateComponent
     @Override
     public void loadState(@NotNull ProjectConfig.InnerState innerState) {
         this.innerState = innerState;
+        idProjectConfig.clear();
+        this.innerState.projectConfig.forEach((s, leetcodeEditor) -> {
+            idProjectConfig.put(leetcodeEditor.getFrontendQuestionId(),leetcodeEditor);
+        });
     }
 
 
-    public LeetcodeEditor getDefEditor(String path) {
-        LeetcodeEditor leetcodeEditor = innerState.projectConfig.get(path);
+    public LeetcodeEditor getDefEditor(String questionId) {
+        LeetcodeEditor leetcodeEditor = idProjectConfig.get(questionId);
         if (leetcodeEditor == null) {
             leetcodeEditor = new LeetcodeEditor();
-            leetcodeEditor.setPath(path);
-            innerState.projectConfig.put(path, leetcodeEditor);
+            idProjectConfig.put(questionId,leetcodeEditor);
         }
         return leetcodeEditor;
+    }
+
+    public void addLeetcodeEditor(LeetcodeEditor leetcodeEditor) {
+        idProjectConfig.put(leetcodeEditor.getFrontendQuestionId(), leetcodeEditor);
+        if(StringUtils.isNotBlank(leetcodeEditor.getPath())) {
+            innerState.projectConfig.put(leetcodeEditor.getPath(), leetcodeEditor);
+        }
     }
 
     public LeetcodeEditor getEditor(String path) {
@@ -67,15 +77,4 @@ public class ProjectConfig implements ProjectComponent, PersistentStateComponent
         return this.getClass().getName();
     }
 
-    public void initComponent() {
-    }
-
-    public void disposeComponent() {
-    }
-
-    public void projectOpened() {
-    }
-
-    public void projectClosed() {
-    }
 }

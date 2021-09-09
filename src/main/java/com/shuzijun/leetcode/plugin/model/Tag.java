@@ -1,5 +1,7 @@
 package com.shuzijun.leetcode.plugin.model;
 
+import org.apache.commons.lang.StringUtils;
+
 import java.util.Comparator;
 import java.util.TreeSet;
 
@@ -15,7 +17,15 @@ public class Tag {
     private TreeSet<String> questions = new TreeSet<String>(new Comparator<String>() {
         @Override
         public int compare(String arg0, String arg1) {
-            return Integer.valueOf(arg0).compareTo(Integer.valueOf(arg1));
+            if (StringUtils.isNumeric(arg0) && StringUtils.isNumeric(arg1)) {
+                return Integer.valueOf(arg0).compareTo(Integer.valueOf(arg1));
+            } else if (StringUtils.isNumeric(arg0)) {
+                return  -1;
+            } else if (StringUtils.isNumeric(arg1)) {
+                return 1;
+            } else {
+                return arg0.compareTo(arg1);
+            }
         }
     });
 
@@ -35,11 +45,11 @@ public class Tag {
         this.name = name;
     }
 
-    public TreeSet<String> getQuestions() {
+    public TreeSet<String> getFrontendQuestionId() {
         return questions;
     }
-    public void addQuestion(String questionId) {
-        questions.add(questionId);
+    public void addFrontendQuestionId(String frontendQuestionId) {
+        questions.add(frontendQuestionId);
     }
 
     public String getType() {
